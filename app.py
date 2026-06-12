@@ -96,13 +96,14 @@ with tab_audit:
         results = core.get_results(sel)
 
         rows, styles = [], []
+        IMG_COLS = ["Main Image"] + [f"Image {i}" for i in range(1, 8)]
         for res in results:
             if res["error"]:
                 rows.append({
                     "Input": res["input"], "Marketplace": res["marketplace"] or "",
                     "Title": f"ERROR: {res['error']}", "Sale Price": "", "# of Reviews": "",
                     "List Price": "", "Buybox Winner": "", "Strikethrough?": "",
-                    "Discount %": "", "Main Image": "",
+                    "Discount %": "", **{c: "" for c in IMG_COLS},
                 })
                 styles.append({"Title": "background-color:#FFA500;color:#000000"})
                 continue
@@ -113,7 +114,7 @@ with tab_audit:
                 "# of Reviews": live.get("# of Reviews", ""), "List Price": live.get("List Price", ""),
                 "Buybox Winner": live.get("Buybox Winner", ""),
                 "Strikethrough?": live.get("Strikethrough?", ""), "Discount %": live.get("Discount %", ""),
-                "Main Image": live.get("Main Image", ""),
+                **{c: live.get(c, "") for c in IMG_COLS},
             })
             styles.append({
                 "Title": RED if res["title_match"] == 0 else "",
@@ -123,10 +124,11 @@ with tab_audit:
 
         df = pd.DataFrame(rows)
         style_df = pd.DataFrame(styles).reindex(columns=df.columns, fill_value="").fillna("")
+        img_config = {c: st.column_config.ImageColumn(c, width="small") for c in IMG_COLS}
         st.dataframe(
             df.style.apply(lambda _: style_df, axis=None),
             use_container_width=True, height=560,
-            column_config={"Main Image": st.column_config.ImageColumn("Main Image", width="small")},
+            column_config=img_config,
         )
 
         mismatch_only = st.checkbox("Show mismatched rows only")
@@ -137,7 +139,7 @@ with tab_audit:
             ]
             st.dataframe(
                 df[pd.Series(mask).values], use_container_width=True,
-                column_config={"Main Image": st.column_config.ImageColumn(width="small")},
+                column_config=img_config,
             )
 
 # -------------------------------------------------------------- masterfile
